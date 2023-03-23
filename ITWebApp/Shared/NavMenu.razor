@@ -1,0 +1,38 @@
+﻿@using ITWebApp.Features.GetClients
+@using ITWebApp.Controllers
+@inject ClientsController clientsController
+
+
+<MudNavMenu Color="Color.Success">
+    <MudNavLink Href="/" Match="NavLinkMatch.All">Home Dashboard</MudNavLink>
+    <MudNavGroup Title="Settings" Expanded="true">
+        @if (clients != null)
+        {
+            @foreach (var client in clients)
+            {
+                <MudNavLink Href="@urlValue(client.ClientId)"  Match="NavLinkMatch.Prefix">@client.ClientName</MudNavLink>
+            }
+
+        }
+    </MudNavGroup>
+    <MudNavLink Href="/about"  Match="NavLinkMatch.Prefix">About</MudNavLink>
+    <AuthorizeView Roles="Admin">
+        <MudNavLink Href="/scripts" Match="NavLinkMatch.Prefix">Settings</MudNavLink>
+    </AuthorizeView>
+   
+</MudNavMenu>
+
+@code {
+  
+    private string urlValue(Guid clientId)
+    {
+        return "client/" + clientId.ToString();
+    }
+
+    private List<GetClientsResponseDto> clients;
+
+    protected override async Task OnInitializedAsync()
+    {
+        clients = await clientsController.GetClients();
+    }
+}

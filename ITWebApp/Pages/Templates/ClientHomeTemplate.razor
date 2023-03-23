@@ -1,0 +1,195 @@
+﻿@page "/client/{clientId}"
+@*@attribute [Authorize]*@
+@using ITWebApp.Controllers
+@using ITWebApp.Features.GetDevices
+@using ITWebApp.Features.GetUsers
+@using ITWebApp.Data
+@using ITWebApp.Features.GetTicketsByClient
+@using System.ComponentModel
+@using ITWebApp.Pages.Templates.Modals  
+@using ITWebApp.Pages.Templates.Dialog
+@inject IDialogService Dialog
+@inject DevicesController deviceController
+@inject TicketsController ticketsController  
+@inject UserController userController
+
+
+
+<h3>ClientHomeTemplate</h3>
+
+
+@if (data == null && tickets == null)
+{
+    <p>Loading Devices...</p>
+}
+else
+{
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Devices">
+         
+              <div class="" id="device-list">
+                    <MudTable Items="@data"  Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" OnRowClick="ShowDeviceModalRowClickEvent" T="GetDevicesResponseDto" LoadingProgressColor="Color.Info">
+                <HeaderContent>
+                    <MudTh>Domain</MudTh>
+                    <MudTh>Hostname</MudTh>
+                    <MudTh>Total Ram</MudTh>
+                    <MudTh>Free Ram</MudTh>
+                    <MudTh>CPU Temp</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                 <MudTd DataLabel="Domain">@context.Domain</MudTd>
+                    <MudTd DataLabel="Hostname">@context.Hostname</MudTd>
+                    <MudTd DataLabel="Total Ram">@context.TotalRam</MudTd>
+                    <MudTd DataLabel="Free Ram">@context.FreeRam</MudTd>
+                    <MudTd DataLabel="CPU Temp">@context.CPUTemp</MudTd>
+                </RowTemplate>
+                </MudTable>
+
+              </div>
+
+
+        </MudTabPanel>
+        <MudTabPanel Text="Tickets">
+            <MudButton OnClick="LoadNewTicketDialog" Variant="Variant.Filled" Color="Color.Primary">New Ticket</MudButton>
+            <div class="" id="tickets-list">
+                <MudTable Items="@tickets" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" OnRowClick="ShowTicketModalRowClickEvent" T="GetTicketsByClientResponseDto" LoadingProgressColor="Color.Info">
+                    <HeaderContent>
+                        <MudTh>User</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh> <MudTableSortLabel SortBy="new Func<GetTicketsByClientResponseDto, object>(x=>x.ticketLastUpdate)">Last Updated</MudTableSortLabel></MudTh>
+                        <MudTh>Content</MudTh>
+                        <MudTh>Engineer ID</MudTh>
+
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="User">@context.user_forename @context.user_surname</MudTd>
+                        <MudTd DataLabel="Status">@context.TicketStatusText</MudTd>
+                        <MudTd DataLabel="Last Updated">@context.ticketLastUpdate</MudTd>
+                        <MudTd DataLabel="Content">@context.ticketContent.First().contentInformation.ToString()</MudTd>
+                        <MudTd DataLabel="Engineer ID">@context.ticketEngineerID</MudTd>
+
+                    </RowTemplate>
+                </MudTable>
+
+            </div>
+
+        </MudTabPanel>
+        <MudTabPanel Text="Users">
+
+            <MudTable Items="@users" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"  T="GetUserInformationResponseDto" LoadingProgressColor="Color.Info">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>User Permission Level</MudTh>
+                    <MudTh>Last Device</MudTh>
+
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="User">@context.user_forename @context.user_surname</MudTd>
+                    <MudTd DataLabel="Email">@context.user_email</MudTd>
+                    <MudTd DataLabel="Email">@context.user_phoneno</MudTd>
+                    <MudTd DataLabel="Email">@context.user_permission_level</MudTd>
+                    <MudTd DataLabel="Email">@context.last_user_device_id</MudTd>
+                  
+
+                </RowTemplate>
+            </MudTable>
+
+
+        </MudTabPanel>
+    </MudTabs>
+
+
+
+
+
+
+
+
+
+  
+
+  
+  @*  <DeviceHistoryModal DeviceHistory="_device"></DeviceHistoryModal>*@
+   @* <FullTicketInfoModal TicketId="_ticketContent"></FullTicketInfoModal>*@
+
+}
+
+
+@code {
+
+
+    [Parameter]
+    public string clientId { get; set; }
+
+
+    private bool _loading;
+
+    public DeviceHistory _device = new DeviceHistory();
+    public FullTicketContent _ticketContent = new FullTicketContent();
+    private List<GetDevicesResponseDto> data;
+    private IEnumerable<GetUserInformationResponseDto> users;
+    private IEnumerable<GetTicketsByClientResponseDto> tickets;
+
+    async Task LoadNewTicketDialog()
+    {
+        var paramaters = new DialogParameters { { "clientId", Guid.Parse(clientId) } };
+        var options = new DialogOptions { FullWidth = true, CloseOnEscapeKey = true, CloseButton = true, DisableBackdropClick = true, Position = DialogPosition.Center, MaxWidth = MaxWidth.Medium };
+        await Dialog.Show<NewTicketDialog>("New Ticket", paramaters, options).Result;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Guid ClientId = Guid.Parse(clientId);
+        tickets = await ticketsController.GetTicketsByClientId(ClientId);
+        data = await deviceController.GetDevicesByClient(ClientId);
+        users = await userController.GetUsersByClientId(ClientId);
+
+    }
+
+    private async void ShowTicketModalRowClickEvent(TableRowClickEventArgs<GetTicketsByClientResponseDto> tableRowClickEventArgs)
+    {
+        var row = tableRowClickEventArgs.Item;
+        //_ticketContent.TicketId = row.ticketID;
+        //_ticketContent.ShowModal = true;
+        var paramaters = new DialogParameters { { "ticketId", row.ticketID } };
+        var options = new DialogOptions { FullWidth = true, CloseOnEscapeKey = true, CloseButton = true, DisableBackdropClick = true, Position = DialogPosition.Center, MaxWidth = MaxWidth.Medium };
+        await Dialog.Show<TicketDialog>("Ticket History", paramaters, options).Result;
+
+
+    }
+
+    private async void ShowDeviceModalRowClickEvent(TableRowClickEventArgs<GetDevicesResponseDto> tableRowClickEventArgs)
+    {
+        var row = tableRowClickEventArgs.Item;
+        _device.MachineKey = row.MachineGuid;
+        _device.ClientId = row.ClientID;
+        _device.ModalShow = true;
+
+        // _device.ModalShow = true;
+        var paramaters = new DialogParameters { { "machineKey", _device.MachineKey }, { "clientId", _device.ClientId }, { "modalShow", true} };
+        var options = new DialogOptions{ CloseOnEscapeKey = true};
+        await Dialog.Show<DeviceHistoryDialog>("Device History", paramaters, options).Result;
+
+    }
+
+   
+
+    #region Modal Code
+
+    string title = "BasicModal";
+    bool _visible = false;
+    Guid _machineKey;
+    Guid _clientId;
+
+    private List<GetDevicesResponseDto> deviceData;
+    IEnumerable<GetDevicesResponseDto> ienDevice;
+
+  
+  
+
+    #endregion
+
+}

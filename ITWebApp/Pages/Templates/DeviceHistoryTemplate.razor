@@ -1,0 +1,51 @@
+﻿@using ITWebApp.Controllers
+@*@attribute [Authorize]*@
+@inject DevicesController _devicesController
+
+<h3>DeviceHistoryTemplate</h3>
+
+
+@*<Modal Title="@title"
+           Visible="@_visible"
+           OnOk="@HandleOk"
+           OnCancel="@HandleCancel"
+           Width="700"
+           DestroyOnClose="true">
+
+        <div class="device-summary">
+            <p>MachineKey: @_machineKey</p>
+            <p>ClientId: @_clientId</p>
+        </div>
+
+        @if (ienDevice == null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <Table TItem="@GetDevicesResponseDto" DataSource="@ienDevice">
+
+                <Column Title="Domain" @bind-Field="@context.Domain"></Column>
+                <Column Title="Hostname" @bind-Field="@context.Hostname"></Column>
+                <Column Title="Total Ram" @bind-Field="@context.TotalRam"></Column>
+                <Column Title="Free Ram" @bind-Field="@context.FreeRam"></Column>
+                <Column Title="CPU Temp" @bind-Field="@context.CPUTemp"></Column>
+
+            </Table>
+        }
+
+    </Modal>*@
+
+@code {
+
+    [Parameter]
+    public DeviceHistory DeviceHistory { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ienDevice = await _devicesController.GetFullDeviceLog(DeviceHistory.MachineKey, DeviceHistory.ClientId);
+
+
+    }
+
+}

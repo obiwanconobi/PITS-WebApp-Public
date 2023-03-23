@@ -1,0 +1,284 @@
+﻿@inject DevicesController deviceHistoryService
+@inject ScriptsController scriptsService
+@inject AuthenticationStateProvider AuthState
+@using ITWebApp.Controllers
+@using ITWebApp.Features.GetDevices
+@using ITWebApp.Features.Scripts
+@using System.ComponentModel
+@using System.Security.Claims
+@using Auth0.ManagementApi
+@using ByteSizeLib;
+@using TwoFactorAuthNet;
+
+
+<style>
+      .mud-charts-xaxis text { writing-mode: vertical-rl;
+                             transform: translateY(25px);}
+
+    .mud-chart-line {
+        overflow: visible;
+    }
+</style>
+
+<MudDialog DisableSidePadding="true">
+    <DialogContent>
+        
+         @if (ienDevice == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <p>@sortedIenDevice.FirstOrDefault().MachineGuid</p>
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                <MudTabPanel Text="Information">
+
+                    @if (sortedIenDevice == null)
+                    {
+                        <p>Loading...</p>
+                    }
+                    else
+                    {
+                        <p>Hostname: @recentDevice.Hostname</p>
+                        <p>Domain: @recentDevice.Domain</p>
+                        <p>CPU: @recentDevice.CPUModel</p>
+                        <p>CPU Cores: @recentDevice.CPUCores</p>
+                        <p>RAM: @recentDevice.TotalRam</p>
+                       
+
+
+
+                    }
+
+                </MudTabPanel>
+    <MudTabPanel Text="CPU Speed History">
+
+                    @if(sortedIenDevice == null)
+                    {
+                        <p>Loading...</p>
+                    }
+                    else
+                    {
+                         <MudChart ChartType="ChartType.Line" ChartSeries="@Series" @bind-SelectedIndex="Index" XAxisLabels="@XAxisLabels" Width="100%" Height="350px"></MudChart>
+ 
+
+                  
+                    }
+
+    </MudTabPanel>
+    <MudTabPanel Text="Disk Information">
+       
+                <MudContainer Style="max-height: 300px; overflow-y: scroll">
+               
+
+
+                       <MudTable Items="@diskInformation">
+                            <HeaderContent>
+                                    <MudTh>Disk Name</MudTh>
+                                    <MudTh>Used Space</MudTh>
+                                    <MudTh>Free Space</MudTh>
+                                    <MudTh>Total Size</MudTh>
+                                  
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Name">@context.DiskName</MudTd>
+                                    <MudTd DataLabel="Used">@ByteSize.FromBytes(@context.DiskUsedSpace).ToString()</MudTd>
+                                <MudTd DataLabel="Free">@ByteSize.FromBytes(@context.DiskFreeSpace).ToString()</MudTd>
+                                <MudTd DataLabel="Total">@ByteSize.FromBytes(@context.DiskTotalSize).ToString()</MudTd>
+                                </RowTemplate>
+
+                       </MudTable>
+
+                </MudContainer>
+
+    </MudTabPanel>
+    <MudTabPanel Text="Installed Apps">
+                    <MudContainer Style="max-height: 300px; overflow-y: scroll">
+                        <MudTable Items="@installedAppsSorted" Hover="true" Breakpoint="Breakpoint.Sm" Loading="false" T="InstalledAppsResponseDto" Filter="new Func<InstalledAppsResponseDto,bool>(FilterFunc1)" LoadingProgressColor="Color.Info">
+                            <ToolBarContent>
+                                <MudText Typo="Typo.h6">Installed Apps</MudText>
+                                <MudSpacer />
+                                <MudTextField @bind-Value="appsSearchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                        </MudTable>
+                    </MudContainer>
+    </MudTabPanel>
+    <MudTabPanel Text="Scripts">
+        <MudSelect T="string" Label="listScripts" ValueChanged="ScriptSelect" Style="max-width:170px;" AnchorOrigin="Origin.BottomCenter" @bind-SelectedValues="ScriptValue">
+
+
+            @if (listScripts != null)
+            {
+                @foreach (var script in listScripts)
+                {
+
+                    <MudSelectItem Style="max-width:170px;" Value="@(script.ScriptName)"></MudSelectItem>
+                }
+            }
+                        
+                      
+        </MudSelect>
+          <MudTextField @bind-Value="MFACode" Label="MFA Code" Variant="Variant.Text"></MudTextField>
+                                
+                                <MudButton Color="Color.Primary" OnClick="RunScript">Run</MudButton>
+    </MudTabPanel>
+</MudTabs>
+
+
+
+
+
+       
+       
+    }
+
+
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public Guid machineKey { get; set; }
+    [Parameter] public Guid clientId { get; set; }
+    [Parameter] public bool modalShow { get; set; }
+
+
+    public DeviceHistory DeviceHistory { get; set; }
+    private string appsSearchString = "";
+    Guid _machineKey;
+    Guid _clientId;
+
+    IEnumerable<GetDevicesResponseDto> ienDevice;
+    IEnumerable<GetDevicesResponseDto> sortedIenDevice;
+    GetDevicesResponseDto recentDevice;
+    IEnumerable<InstalledAppsResponseDto> installedApps;
+    IEnumerable<DiskResponseDto> diskInformation;
+    IEnumerable<InstalledAppsResponseDto> installedAppsSorted;
+    double[] CPUUage;
+
+    public List<ScriptsDto> listScripts;
+    public IEnumerable<string> ScriptValue { get; set; } = new HashSet<string>();
+    public string ScriptSelectValue { get; set; } = "";
+    public string[] XAxisLabels;
+    public List<string> xAxisCpuSpeedDateTime = new List<string>();
+    private int Index = -1;
+    public List<ChartSeries> Series;
+    public int MFACode;
+    public TwoFactorAuth tfa = new TwoFactorAuth("PITS-WebApp");
+    public AuthenticationState authState;
+    
+    void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    void Cancel() => MudDialog.Close(DialogResult.Ok(true));
+
+    async void RunScript()
+    {
+
+        authState = await AuthState.GetAuthenticationStateAsync();
+        var authKey = Environment.GetEnvironmentVariable("Auth0ManageKey");
+        var claims = authState.User.Claims;
+        var client = new ManagementApiClient(authKey, new Uri(Environment.GetEnvironmentVariable("Auth0ManageAPI")));
+        var Auth0User = await client.Users.GetAsync(claims.Where(x => x.Type == ClaimTypes.NameIdentifier).FirstOrDefault().Value);
+
+        string? secret = Auth0User.UserMetadata["2fa_secret"];
+        if (secret == null)
+        {
+            //error
+        }
+
+        if (tfa.VerifyCode(secret, MFACode.ToString()) == true)
+        {
+            var script = (from u in listScripts where u.ScriptName == ScriptValue.FirstOrDefault() select u).FirstOrDefault();
+
+            UpdateScriptToRunDto updateScript = new UpdateScriptToRunDto
+            {
+                MachineGuid = machineKey,
+                ScriptId = script.ScriptId,
+                ScriptRun = 0,
+                ScriptToRunGuid = Guid.NewGuid(),
+                RunBy = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+                TimeToRun = DateTime.Now
+            };
+
+            await scriptsService.UpdateScriptToRun(updateScript);
+        }
+        else
+        {
+            //error
+        }
+        
+        //userId = (from u in users where u.user_forename == forename && u.user_surname == surname select u.UserID).ToList().FirstOrDefault();
+
+      
+
+        //  MudDialog.Close(DialogResult.Ok(true));
+    }
+
+
+    public async void ScriptSelect(string value)
+    {
+        ScriptSelectValue = value.ToString();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(modalShow == true)
+        {
+           
+
+
+            // ScriptValue listScripts.FirstOrDefault().ScriptName;
+
+            ienDevice = await deviceHistoryService.GetFullDeviceLog(machineKey, clientId);
+            sortedIenDevice = ienDevice.OrderByDescending(x => x.LoggedDateTime);
+            recentDevice = sortedIenDevice.FirstOrDefault();
+            List<double> cpuUsage = new List<double>();
+
+             string machineType = sortedIenDevice.FirstOrDefault().MachineType;
+            listScripts = await scriptsService.GetScriptsByMachineType(machineType);
+
+            ScriptValue = listScripts.Select(x => x.ScriptName.ToString()).ToList();
+
+            foreach(var device in sortedIenDevice.Take(10))
+            {
+                xAxisCpuSpeedDateTime.Insert(0,device.LoggedDateTime.ToString());
+                cpuUsage.Insert(0,Convert.ToDouble(device.CPUCurrentLoad));
+            }
+            List<ChartSeries> chart = new List<ChartSeries>()
+    {
+        new ChartSeries() { Name = "", Data = cpuUsage.ToArray() },
+
+    };
+            XAxisLabels = xAxisCpuSpeedDateTime.ToArray();
+            Series = chart;
+            //installedApps = sortedIenDevice.FirstOrDefault().InstalledApps;
+            diskInformation = sortedIenDevice.First().DiskInformation.OrderBy(x => x.DiskName);
+            installedApps = await deviceHistoryService.GetInstalledApps(machineKey);
+            installedAppsSorted = installedApps.OrderByDescending(x => x.InstalledDate);
+        }
+
+        _machineKey = machineKey;
+        _clientId = clientId;
+      
+    }
+
+    private bool FilterFunc1(InstalledAppsResponseDto element) => FilterFunc(element, appsSearchString);
+
+    private bool FilterFunc(InstalledAppsResponseDto element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.AppName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Publisher.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if ($"{element.InstalledDate} {element.AppId}".Contains(searchString))
+            return true;
+        return false;
+    }
+
+}

@@ -1,0 +1,49 @@
+﻿@inject ScriptsController scriptsService
+@using ITWebApp.Controllers;
+@using ITWebApp.Features.Scripts
+<h3>NewScriptDialog</h3>
+<MudDialog>
+    <DialogContent>
+
+        <MudTextField @bind-Value="scriptName" Label="Script Name" Variant="Variant.Text"></MudTextField>
+        <MudTextField @bind-Value="machineType" Label="Machine Type" Variant="Variant.Text"></MudTextField>
+        <MudTextField @bind-Value="scriptValue" Label="Script" Lines="7" Variant="Variant.Text"></MudTextField>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    public string scriptName { get; set; } = "New Script";
+    public string scriptValue { get; set; } 
+    public string machineType { get; set; } 
+
+    void Cancel() => MudDialog.Cancel();
+    async void Submit()
+    {
+        NewScriptDto newScript = new NewScriptDto
+        {
+            MachineType = machineType,
+            ScriptId = Guid.NewGuid(),
+            ScriptName = scriptName,
+            Script = scriptValue,
+            CreatedBy = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+            CreationDate = DateTime.Now,
+                EditedBy = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+                EditedDate = DateTime.Now,
+                Active = 1,
+                PermissionLevel = 0
+        };
+
+        await scriptsService.AddNewScript(newScript);
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

@@ -1,0 +1,56 @@
+﻿@page "/devicePage/{clientId}/{deviceId}"
+@inject DevicesController deviceHistoryService
+@using ITWebApp.Controllers
+@using ITWebApp.Features.GetDevices
+@using ITWebApp.Data
+@using System.ComponentModel
+@using ITWebApp.Shared.Models.ChartModels
+
+
+
+<h3>DevicePage</h3>
+
+
+
+@code {
+
+
+    [Parameter]
+    public string deviceId { get; set; }
+    [Parameter]
+    public string clientId { get; set; }
+    IEnumerable<GetDevicesResponseDto> ienDevice;
+    IEnumerable<GetDevicesResponseDto> Device;
+    Guid _machineKey;
+    Guid _clientId;
+   
+    List<DeviceRamObject> ramObject;
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        
+           
+        
+
+    }
+
+    //protected override async Task OnParametersSetAsync()
+    //{
+    //    ramObject = new List<DeviceRamObject>();
+    //    ienDevice = await deviceHistoryService.GetFullDeviceLog(Guid.Parse(deviceId), Guid.Parse(clientId));
+    //    foreach(var device in ienDevice)
+    //    {
+           
+    //        ramObject.Add(new DeviceRamObject{LoggedDateTime = device.LoggedDateTime, FreeRam = device.FreeRam});
+    //    }
+    //    await ramchart.ChangeData(ramObject);
+    //}
+
+   
+
+}

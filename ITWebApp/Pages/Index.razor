@@ -1,0 +1,154 @@
+﻿@page "/"
+@attribute [Authorize(Roles = "Admin")]
+@inject DevicesController deviceController
+@inject IDialogService Dialog
+@inject AuthenticationStateProvider AuthState
+@using Microsoft.IdentityModel.Tokens;
+@using Microsoft.AspNetCore.Authentication;
+@using Microsoft.AspNetCore.Mvc;
+@using ITWebApp.Controllers
+@using ITWebApp.Features.GetDevices
+@using ITWebApp.Data
+@using System.ComponentModel
+@using ITWebApp.Pages.Templates.Dialog
+@using ITWebApp.Pages.Templates.Modals
+@using System.Security.Claims
+
+
+
+
+@if (data == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+
+    <h1>@username</h1>
+    <div class="device-cards-class" id="device-cards">
+        
+        <MudGrid>
+            @foreach (var item in orderedData)
+            {
+                <MudItem Style="padding-top:25px;padding-bottom:25px;" xs="3">
+                    <MudCard Style="min-height:275px;">
+                        <MudCardContent>
+                                <p>@item.Hostname</p>
+                                <p>@item.MachineType</p>
+                            @if(item.LoggedDateTime > timeOnLoad)
+                            {
+                                <MudAlert Severity="Severity.Success">Online</MudAlert>
+                            
+                            }else{
+                            <MudAlert Severity="Severity.Error">Offline</MudAlert>
+                            }
+                        </MudCardContent>
+                        <MudCardActions Style="padding-left:12px; padding-bottom:15px;">
+                        
+                            <MudIcon Icon="@Icons.Outlined.Info" Style="cursor:pointer;" @onclick="(()=>{ ShowModal(item.MachineGuid, item.ClientID);})" Color="Color.Info" />
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </div>
+
+    <MudTable Items="@orderedData" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" OnRowClick="RowClickEvent" T="GetDevicesResponseDto" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Domain</MudTh>
+        <MudTh>Hostname</MudTh>
+        <MudTh>Total Ram</MudTh>
+        <MudTh>Free Ram</MudTh>
+        <MudTh>CPU Temp</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Domain">@context.Domain</MudTd>
+        <MudTd DataLabel="Hostname">@context.Hostname</MudTd>
+        <MudTd DataLabel="Total Ram">@context.TotalRam</MudTd>
+        <MudTd DataLabel="Free Ram">@context.FreeRam</MudTd>
+        <MudTd DataLabel="CPU Temp">@context.CPUTemp</MudTd>
+    </RowTemplate>
+    </MudTable>
+  //  <DeviceHistoryModal DeviceHistory="_device"></DeviceHistoryModal>
+}
+
+
+
+
+@code{
+
+
+    public DeviceHistory _device = new DeviceHistory();
+    private List<GetDevicesResponseDto> data;
+    private IEnumerable<GetDevicesResponseDto> orderedData;
+    private DateTime timeOnLoad;
+    string username = "";
+    string email = "";
+    public IEnumerable<System.Security.Claims.Claim> userClaims;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        userClaims = state.User.Claims;
+
+        username = userClaims.FirstOrDefault().Value;
+       var claaaims = userClaims.Where(x => x.Type == ClaimTypes.Role).FirstOrDefault().Value;
+
+        var userid = userClaims.Where(x => x.Type == ClaimTypes.NameIdentifier).FirstOrDefault().Value;
+        //Guid iddd = Guid.Parse(claaaims);
+        data = await deviceController.GetDevices();
+        // orderedData = data.OrderByDescending(x => x.LoggedDateTime);
+        orderedData = data.OrderByDescending(y => y.LoggedDateTime).DistinctBy(x => x.MachineGuid);
+        timeOnLoad = DateTime.Now.AddMinutes(-5);
+
+        //data = await deviceController.GetDevices();
+        //var orderedData = data.DistinctBy(x => x.MachineGuid);
+       // orderedData = data.OrderByDescending(x => x.LoggedDateTime);
+
+
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<GetDevicesResponseDto> tableRowClickEventArgs)
+    {
+        _visible = true;
+    }
+
+
+
+
+
+    #region Modal Code
+
+    string title = "BasicModal";
+    bool _visible = false;
+    Guid _machineKey;
+    Guid _clientId;
+    private bool _loading;
+
+    private List<GetDevicesResponseDto> deviceData;
+    IEnumerable<GetDevicesResponseDto> ienDevice;
+
+    private async void ShowModal(Guid machineKey, Guid clientId)
+    {
+        _device.MachineKey = machineKey;
+        _device.ClientId = clientId;
+        // _device.ModalShow = true;
+        var paramaters = new DialogParameters { { "machineKey", machineKey }, { "clientId", clientId }, { "modalShow", true} };
+        var options = new DialogOptions { FullWidth=true,CloseOnEscapeKey=true, CloseButton= true, DisableBackdropClick=true, Position=DialogPosition.Center, MaxWidth=MaxWidth.Medium };
+        await Dialog.Show<DeviceHistoryDialog>("Device History", paramaters, options).Result;
+    }
+
+   
+
+
+    private async Task LoadDeviceData(Guid machineKey, Guid clientId)
+    {
+
+        _device.ClientId = clientId;
+        _device.MachineKey = machineKey;
+
+    }
+
+    #endregion
+
+}

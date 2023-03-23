@@ -1,0 +1,480 @@
+﻿@page "/scripts"
+@inject ScriptsController scriptsService
+@inject IDialogService Dialog
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@using ITWebApp.Controllers
+@using ITWebApp.Features.Scripts
+@using ITWebApp.Pages.Templates.Dialog
+@using Auth0.ManagementApi
+@using Auth0.ManagementApi.Models
+@using KellermanSoftware.CompareNetObjects
+@using Newtonsoft.Json.Linq
+@using TwoFactorAuthNet
+@using System.Security.Claims
+
+
+<h3>Settings</h3>
+
+<MudExpansionPanels>
+    <MudExpansionPanel Text="Script Settings" MaxHeight="1150">
+           <MudButton OnClick="NewScriptDialog" Color="Color.Primary" Variant="Variant.Filled">New Script</MudButton>
+
+           <MudSelect T="string" Label="listScripts" ValueChanged="ScriptSelect" Style="max-width:170px;" AnchorOrigin="Origin.BottomCenter" @bind-SelectedValues="ScriptValue">
+
+
+          @if (listScripts != null)
+          {
+                @foreach (var script in listScripts)
+                {
+                                 <MudSelectItem Style="max-width:170px;" Value="@(script.ScriptName)"></MudSelectItem>
+                }
+          }
+    
+             </MudSelect>
+
+        @if(selectValue != null)
+        {
+    
+            <MudPaper MaxWidth="300px" Class="pa-16 ma-2" Elevation="0">
+
+                <MudTextField @bind-Value="@selectValue.ScriptName" Label="Script Name" Variant="Variant.Text"></MudTextField>
+                <MudTextField @bind-Value="@selectValue.MachineType" Label="Machine Type" Variant="Variant.Text"></MudTextField>
+                <MudTextField @bind-Value="@selectValue.Script" Lines="7" Label="Script" Variant="Variant.Text"></MudTextField>
+       
+                <MudButton OnClick="SaveScript" Variant="Variant.Filled">Save</MudButton>
+            </MudPaper>
+        }
+    </MudExpansionPanel>
+   
+    <MudExpansionPanel Text="Panel Three" MaxHeight="1000">
+      @*  <MudTable Items="@auth0Users" Hover="true" Breakpoint="Breakpoint.Sm" Loading="false" LoadingProgressColor="Color.Info">
+  
+        </MudTable>*@
+
+        
+
+
+    </MudExpansionPanel>
+    <MudExpansionPanel Text="Engineers">
+          <MudButton Color="Color.Primary" OnClick="AddUser">Add User</MudButton>      
+        @if (auth0Users != null)
+        {
+            <MudTable Items="@Users" Dense="@dense" Hover="@hover" ReadOnly="@ronly" CanCancelEdit="@canCancelEdit" Filter="new Func<User,bool>(FilterFunc)"
+                      @bind-SelectedItem="selectedItem1" SortLabel="Sort By" CommitEditTooltip="Commit Edit"
+                      OnCommitEditClick="@(() => Snackbar.Add("Commit Edit Handler Invoked"))" OnPreviewEditClick="BackupItem" RowEditCancel="ResetItemToOriginalValues"
+                      RowEditCommit="ItemHasBeenCommitted" IsEditRowSwitchingBlocked="@blockSwitch" ApplyButtonPosition="@applyButtonPosition" EditButtonPosition="@editButtonPosition" EditTrigger="@editTrigger">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Periodic Users</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                </ToolBarContent>
+                <ColGroup>
+                    @if (applyButtonPosition.DisplayApplyButtonAtStart() || (editButtonPosition.DisplayEditButtonAtStart() && editTrigger == TableEditTrigger.EditButton))
+                    {
+                        <col style="width:50px;" />
+                    }
+                    <col style="width:50px;" />
+                    <col style="width:80px;" />
+                    <col style="width:50%;" />
+                    <col />
+                    <col />
+                    @if (applyButtonPosition.DisplayApplyButtonAtEnd() || (editButtonPosition.DisplayEditButtonAtEnd() && editTrigger == TableEditTrigger.EditButton))
+                    {
+                        <col style="width:50px;" />
+                    }
+                </ColGroup>
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.LastIpAddress)">Last IP</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.Locale)">Locale</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<User, object>(x=>x.LoginsCount)">Login Count</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.UserId)">UserId</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.Email)">Email</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.PhoneNumber)">Phone</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.UserName)">Username</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.NickName)">Nickname</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.FirstName)">First Name</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.FullName)">Full Name</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.LastName)">Last Name</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<User, object>(x=>x.Picture)">Picture</MudTableSortLabel></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Last IP">@context.LastIpAddress</MudTd>
+                    <MudTd DataLabel="Locale">@context.Locale</MudTd>
+                    <MudTd DataLabel="Login Count">@context.LoginsCount</MudTd>
+                    <MudTd DataLabel="User Id">@context.UserId</MudTd>
+                    <MudTd DataLabel="Email">@context.Email</MudTd>
+                    <MudTd DataLabel="Phone">@context.PhoneNumber</MudTd>
+                    <MudTd DataLabel="Username">@context.UserName</MudTd>
+                    <MudTd DataLabel="Nickname">@context.NickName</MudTd>
+                    <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                    <MudTd DataLabel="Full Name">@context.FullName</MudTd>
+                    <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                    <MudTd DataLabel="Picture">@context.Picture</MudTd>
+
+                </RowTemplate>
+                <RowEditingTemplate>
+                    <MudTd DataLabel="Last IP">@context.LastIpAddress</MudTd>
+                    <MudTd DataLabel="Locale">@context.Locale</MudTd>
+                    <MudTd DataLabel="Login Count">@context.LoginsCount</MudTd>
+                    <MudTd DataLabel="User Id">@context.UserId></MudTd>
+                    <MudTd DataLabel="Email">@context.Email> <MudTextField @bind-Value="@context.Email" Required /></MudTd>
+                    <MudTd DataLabel="Phone">@context.PhoneNumber> <MudTextField @bind-Value="@context.PhoneNumber" /></MudTd>
+                    <MudTd DataLabel="Username">@context.UserName> <MudTextField @bind-Value="@context.UserName" /></MudTd>
+                    <MudTd DataLabel="Nickname">@context.NickName>  <MudTextField @bind-Value="@context.NickName" Required /></MudTd>
+                    <MudTd DataLabel="First Name">@context.FirstName>  <MudTextField @bind-Value="@context.FirstName" /></MudTd>
+                    <MudTd DataLabel="Full Name">@context.FullName>  <MudTextField @bind-Value="@context.FullName"  /></MudTd>
+                    <MudTd DataLabel="Last Name">@context.LastName>  <MudTextField @bind-Value="@context.LastName" /></MudTd>
+                    <MudTd DataLabel="Picture">@context.Picture</MudTd>
+
+
+                </RowEditingTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+                <EditButtonContent Context="button">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@button.ButtonAction" Disabled="@button.ButtonDisabled" />
+                </EditButtonContent>
+            </MudTable>
+
+            <MudSwitch @bind-Checked="@hover" Color="Color.Primary">Hover</MudSwitch>
+            <MudSwitch @bind-Checked="@dense" Color="Color.Secondary">Dense</MudSwitch>
+            <MudSwitch @bind-Checked="@ronly" Color="Color.Tertiary">Read Only</MudSwitch>
+            <MudSwitch @bind-Checked="@canCancelEdit" Color="Color.Info">Can Cancel Edit</MudSwitch>
+            <MudSwitch @bind-Checked="@blockSwitch" Color="Color.Success">Block Edit Row Switching</MudSwitch>
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudSelect Label="Edit Trigger" T="TableEditTrigger" @bind-Value="editTrigger">
+                        <MudSelectItem Value="TableEditTrigger.RowClick">Row Click</MudSelectItem>
+                        <MudSelectItem Value="TableEditTrigger.EditButton">Edit Button</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                @if (editTrigger == TableEditTrigger.EditButton)
+                {
+                    <MudItem xs="12" md="4">
+                        <MudSelect Label="Edit Button Postion" T="TableEditButtonPosition" @bind-Value="editButtonPosition">
+                            <MudSelectItem Value="TableEditButtonPosition.Start">Start</MudSelectItem>
+                            <MudSelectItem Value="TableEditButtonPosition.End">End</MudSelectItem>
+                            <MudSelectItem Value="TableEditButtonPosition.StartAndEnd">Start and End</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                }
+                <MudItem xs="12" md="4">
+                    <MudSelect Label="Apply Button Postion" T="TableApplyButtonPosition" @bind-Value="applyButtonPosition">
+                        <MudSelectItem Value="TableApplyButtonPosition.Start">Start</MudSelectItem>
+                        <MudSelectItem Value="TableApplyButtonPosition.End">End</MudSelectItem>
+                        <MudSelectItem Value="TableApplyButtonPosition.StartAndEnd">Start and End</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Inline="true">Selected1: @selectedItem1?.UserName</MudText>
+
+            <MudExpansionPanels Style="flex: 1;">
+                <MudExpansionPanel Text="Show inline-edit event log">
+                    @foreach (var message in editEvents)
+                    {
+                        <MudText>@message</MudText>
+                    }
+                    @if (editEvents.Count > 0)
+                    {
+                        <div class="d-flex">
+                            <MudSpacer />
+                            <MudButton Class="mt-3" ButtonType="ButtonType.Button" Variant="Variant.Filled" OnClick="ClearEventLog">Clear event log</MudButton>
+                        </div>
+                    }
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+
+
+
+
+
+    </MudExpansionPanel>
+    <MudExpansionPanel Text="2FA Setup" MaxHeight="1000">
+        
+       @if (MFAEnabled != true)
+       {
+           <MudButton OnClick="MFASetup" Variant="Variant.Filled" Color="Color.Primary">Setup MFA</MudButton>
+           @if (secret != null)
+           {
+               <p><img src="@tfa.GetQrCodeImageAsDataUri("MFA QR Code", secret)"></p>
+               <MudTextField @bind-Value="MFACode" Label="MFA Code" Variant="Variant.Text"></MudTextField>
+               <MudButton OnClick="VerifyMFA" Variant="Variant.Filled" Color="Color.Primary">Setup MFA</MudButton>
+               @if (verified == true)
+               {
+                   <p>VERIFIED</p>
+               }
+
+           }
+       }
+       else
+       {
+           <p>MFA already enabled</p>
+       }
+        
+      
+
+
+
+    </MudExpansionPanel>
+    
+</MudExpansionPanels>
+
+
+
+
+@code {
+
+    public List<ScriptsDto> listScripts;
+    public IEnumerable<string> ScriptValue { get; set; } = new HashSet<string>();
+    public string ScriptSelectValue { get; set; } = "";
+    public ScriptsDto selectValue;
+    public IEnumerable<System.Security.Claims.Claim> userClaims;
+    public IEnumerable<User> auth0Users = new List<User>();
+
+
+    //declarationsforform
+    public string ScriptName { get; set; }
+    public string ScriptText { get; set; }
+
+    private List<string> editEvents = new();
+    private bool dense = false;
+    private bool hover = true;
+    private bool ronly = false;
+    private bool canCancelEdit = false;
+    private bool blockSwitch = false;
+    private string searchString = "";
+    private User selectedItem1 = null;
+    public User elementBeforeEdit = null;
+    private HashSet<User> selectedItems1 = new HashSet<User>();
+    private TableApplyButtonPosition applyButtonPosition = TableApplyButtonPosition.End;
+    private TableEditButtonPosition editButtonPosition = TableEditButtonPosition.End;
+    private TableEditTrigger editTrigger = TableEditTrigger.RowClick;
+    private IEnumerable<User> Users = new List<User>();
+    public User backupData = null;
+    public string authKey = null;
+    public string secret = null;
+    public TwoFactorAuth tfa = null;
+    public int MFACode;
+    public bool verified = false;
+    public ManagementApiClient client;
+    public AuthenticationState authState;
+    public bool MFAEnabled = false;
+    public User Auth0User;
+    public string apiaddress;
+    
+    public async void MFASetup()
+    {
+        tfa = new TwoFactorAuth("PITS-WebApp");
+        secret = tfa.CreateSecret(160);
+        
+      
+    }
+
+    public async void VerifyMFA()
+    {
+        verified = tfa.VerifyCode(secret, MFACode.ToString());
+        
+        userClaims = authState.User.Claims;
+        
+        var job = new JObject();
+        job.Add("2fa_secret", secret);
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.UserMetadata = job;
+        await client.Users.UpdateAsync(userClaims.Where(x => x.Type == ClaimTypes.NameIdentifier).FirstOrDefault().Value, request);
+        
+    }
+
+    public async void AddUser()
+    {
+    // var paramaters = new DialogParameters { { "ticketId", row.ticketID } };
+        var options = new DialogOptions { FullWidth = true, CloseOnEscapeKey = true, CloseButton = true, DisableBackdropClick = true, Position = DialogPosition.Center, MaxWidth = MaxWidth.Medium };
+        await Dialog.Show<NewAuth0User>("New User", options).Result;
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        
+        
+        authState = await AuthState.GetAuthenticationStateAsync();
+        authKey = Environment.GetEnvironmentVariable("Auth0ManageKey");
+        apiaddress = Environment.GetEnvironmentVariable("Auth0ManageAPI");
+        client = new ManagementApiClient(authKey, new Uri(Environment.GetEnvironmentVariable("Auth0ManageAPI")));
+        
+        GetAuth0Users();
+        var state = await AuthState.GetAuthenticationStateAsync();
+        userClaims = state.User.Claims;
+        Console.WriteLine(userClaims.ToString());
+        Auth0User = await client.Users.GetAsync(userClaims.Where(x => x.Type == ClaimTypes.NameIdentifier).FirstOrDefault().Value);
+
+        string? mfasecret = Auth0User.UserMetadata["2fa_secret"];
+        
+        
+        var userata = Auth0User.UserMetadata.ToString();
+        if (mfasecret != null)
+        {
+            MFAEnabled = true;
+        }
+        
+        string machineType = "Windows";
+        listScripts = await scriptsService.GetScriptsByMachineType(machineType);
+
+
+        ScriptValue = listScripts.Select(x => x.ScriptName.ToString()).ToList();
+        selectValue = listScripts.FirstOrDefault();
+    }
+    public async void GetAuth0Users()
+    {
+        var client = new ManagementApiClient(authKey, new Uri(Environment.GetEnvironmentVariable("Auth0ManageAPI")));
+        Users = await client.Users.GetAllAsync(new Auth0.ManagementApi.Models.GetUsersRequest());
+        // StateHasChanged();
+    }
+
+
+
+    public async void ScriptSelect(string value)
+    {
+        ScriptSelectValue = value.ToString();
+        Reset(value.ToString());
+    }
+
+    async Task SaveScript()
+    {
+        await scriptsService.UpdateScript(selectValue);
+        StateHasChanged();
+    }
+
+    async Task NewScriptDialog()
+    {
+        // var paramaters = new DialogParameters { { "ticketId", row.ticketID } };
+        var options = new DialogOptions { FullWidth = true, CloseOnEscapeKey = true, CloseButton = true, DisableBackdropClick = true, Position = DialogPosition.Center, MaxWidth = MaxWidth.Medium };
+        await Dialog.Show<NewScriptDialog>("New Script", options).Result;
+    }
+    private void Reset(string scriptName)
+    {
+
+        selectValue = listScripts.Where(x => x.ScriptName == scriptName).FirstOrDefault();
+        StateHasChanged();
+
+    }
+    private void ClearEventLog()
+    {
+        editEvents.Clear();
+    }
+
+    private void AddEditionEvent(string message)
+    {
+        editEvents.Add(message);
+        StateHasChanged();
+    }
+
+    private void BackupItem(object elementBefore)
+    {
+        backupData = new()
+            {
+                NickName = ((User)elementBefore).NickName,
+                LastIpAddress = ((User)elementBefore).LastIpAddress,
+                Locale = ((User)elementBefore).Locale,
+                UserId = ((User)elementBefore).UserId,
+                Email = ((User)elementBefore).Email,
+                PhoneNumber = ((User)elementBefore).PhoneNumber,
+                UserName = ((User)elementBefore).UserName,
+                FirstName = ((User)elementBefore).FirstName,
+                FullName = ((User)elementBefore).FullName,
+                LastName = ((User)elementBefore).LastName,
+                Picture = ((User)elementBefore).Picture,
+                CreatedAt =  ((User)elementBefore).CreatedAt,
+                Identities =  ((User)elementBefore).Identities,
+                LastLogin =  ((User)elementBefore).LastLogin,
+                LoginsCount =  ((User)elementBefore).LoginsCount,
+                EmailVerified =  ((User)elementBefore).EmailVerified,
+                UpdatedAt =  ((User)elementBefore).UpdatedAt,
+                PhoneVerified =  ((User)elementBefore).PhoneVerified,
+                ProviderAttributes =  ((User)elementBefore).ProviderAttributes,
+                UserMetadata = ((User)elementBefore).UserMetadata
+                    
+            };
+
+        elementBeforeEdit = (User)elementBefore;
+        // BackupData(elementBeforeEdit);
+        AddEditionEvent($"RowEditPreview event: made a backup of User {((User)elementBefore).UserName}");
+    }
+    private void BackupData(User backup)
+    {
+        backupData = new User();
+        backupData = backup;
+    }
+
+    private async void ItemHasBeenCommitted(object element)
+    {
+
+        CompareLogic compareLogic = new CompareLogic();
+        compareLogic.Config.MaxDifferences = 20;
+        ComparisonResult result = compareLogic.Compare((User)element, backupData);
+
+        
+        // UserUpdateRequest request = (UserUpdateRequest)element;
+        //var result = await client.Users.UpdateAsync(element);
+        UserUpdateRequest request = new UserUpdateRequest();
+
+        foreach(var rr in result.Differences)
+        {
+            if(rr.PropertyName == "NickName")
+            {
+                request.NickName = rr.Object1Value;
+            }
+
+            if (rr.PropertyName == "Email")
+            {
+                request.Email = rr.Object1Value;
+            }
+
+            if (rr.PropertyName == "FirstName")
+            {
+                request.FirstName = rr.Object1Value;
+            }
+
+            if (rr.PropertyName == "LastName")
+            {
+                request.LastName = rr.Object1Value;
+            }
+            if (rr.PropertyName == "FullName")
+            {
+                request.FullName = rr.Object1Value;
+            }
+
+         
+        };
+        var job = new JObject();
+        job.Add("2fa", "asddasdas");
+        request.UserMetadata = job;
+         await client.Users.UpdateAsync(backupData.UserId, request);
+
+        AddEditionEvent($"RowEditCommit event: Changes to User {((User)element).UserName} committed");
+    }
+
+    private void ResetItemToOriginalValues(object element)
+    {
+        element = (User)elementBeforeEdit;
+        AddEditionEvent($"RowEditCancel event: Editing of User {((User)element).UserName} canceled");
+    }
+
+    private bool FilterFunc(User element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.UserName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if ($"{element.FirstName} {element.LastName} {element.FullName}".Contains(searchString))
+            return true;
+        //return false;
+        return false;
+    }
+
+    //users table
+  
+}

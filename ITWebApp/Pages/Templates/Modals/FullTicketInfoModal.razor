@@ -1,0 +1,87 @@
+﻿@inject TicketsController ticketsController
+@using ITWebApp.Controllers
+@using ITWebApp.Features.GetFullTicketContent
+@using ITWebApp.Data
+@using System.ComponentModel
+
+
+
+@*<Modal Title="@title"
+       Visible="@_visible"
+       OnOk="@HandleOk"
+       OnCancel="@HandleCancel"
+       Width="700"
+       MaxBodyHeight="700"
+       DestroyOnClose="true">
+
+    @if (ticketsList == null)
+    {
+
+    }
+    else
+    {*@
+
+
+@*
+    <Table TItem="@TicketContentDto" DataSource="@ticketsList.TicketContent">
+            <Column Title="ID" @bind-Field="context.ContentID"></Column>
+            <Column Title="Date" @bind-Field="context.ContentDate"></Column>
+            <Column Title="Info" @bind-Field="context.ContentInformation"></Column>
+            <Column Title="TicketId" @bind-Field="context.ContentTicketID"></Column>
+            <Column Title="Updated By" @bind-Field="context.ContentUpdatedBy"></Column>
+    </Table>
+*@
+        
+
+        @*<Button Type="@ButtonType.Primary" OnClick="HandleOk">Save</Button>
+        <Button Type="@ButtonType.Default" OnClick="HandleCancel">Close</Button>*@
+    }
+
+@*</Modal>
+*@
+
+@code {
+
+    [Parameter]
+    public FullTicketContent TicketId { get; set; }
+
+    bool _visible = false;
+    string title = "Full Ticket Content";
+    private GetFullTicketContentResponseDto ticketsList;
+    IEnumerable<GetFullTicketContentResponseDto> sortedTicketsList;
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+        await LoadDeviceData(TicketId.TicketId, TicketId.ShowModal);
+
+    }
+
+    private void HandleOk(MouseEventArgs e)
+    {
+        Console.WriteLine(e);
+        _visible = false;
+    }
+
+    private void HandleCancel(MouseEventArgs e)
+    {
+        Console.WriteLine(e);
+        _visible = false;
+    }
+
+    private async Task LoadDeviceData(Guid TicketId, bool modalShow)
+    {
+        if (modalShow == true)
+        {
+            ticketsList = await ticketsController.GetFullTicketContent(TicketId);
+
+
+        }
+
+
+        _visible = modalShow;
+        //  ienDevice = deviceData;
+    }
+
+
+}

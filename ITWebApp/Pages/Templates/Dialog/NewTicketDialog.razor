@@ -1,0 +1,76 @@
+﻿@inject TicketsController ticketsController
+@inject UserController usersController
+@using ITWebApp.Controllers
+@using ITWebApp.Features.SubmitTicket
+@using ITWebApp.Features.GetUsers
+
+<h3>NewTicketDialog</h3>
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="string" Label="Users" ValueChanged="UserSet" Style="max-width:170px;" AnchorOrigin="Origin.BottomCenter" @bind-SelectedValues="defaultUser">
+
+
+            @if (users != null)
+            {
+                @foreach (var user in users)
+                {
+
+                    <MudSelectItem Style="max-width:170px;" Value="@(user.user_forename + " " + @user.user_surname)"></MudSelectItem>
+                }
+            }
+
+        </MudSelect>
+
+        <MudTextField @bind-Value="UpdateTicketText" Label="Filled" Variant="Variant.Filled"></MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+  </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public Guid clientId { get; set; }
+    public Guid userId { get; set; }
+    public string UpdateTicketText { get; set; }
+    private List<GetUserInformationResponseDto> users;
+    public string UserDefaultValue { get; set; } = "";
+    public IEnumerable<string> defaultUser { get; set; } = new HashSet<string>();
+
+
+    void Cancel() => MudDialog.Cancel();
+
+
+    async void Submit()
+    {
+        string[] names = UserDefaultValue.Split(' ');
+        var forename = names[0];
+        var surname = names[1];
+        userId = (from u in users where u.user_forename == forename && u.user_surname == surname select u.UserID).ToList().FirstOrDefault();
+
+        SubmitTicketDto content = new SubmitTicketDto
+            {
+                ticketClientID = clientId,
+                ticketUserId = userId,
+                ticketMessage = UpdateTicketText
+            };
+
+        await ticketsController.PostNewTicket(content);
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    public async void UserSet(string value)
+    {
+        UserDefaultValue = value.ToString();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        users = await usersController.GetUsersByClientId(clientId);
+    }
+
+}

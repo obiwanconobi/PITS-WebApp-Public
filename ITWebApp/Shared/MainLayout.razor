@@ -1,0 +1,72 @@
+﻿@inherits LayoutComponentBase
+<MudThemeProvider IsDarkMode="@_darkMode" />
+
+<MudSnackbarProvider/>
+<MudDialogProvider/>
+
+
+
+<MudLayout>
+    <MudAppBar>
+        <MudGrid>
+            <MudItem xs="10">
+                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+            </MudItem>
+           <!--  <MudDivider Vertical="true" FlexItem="true" />-->
+          
+            <MudItem Style="padding-left:50px" xs="2">
+            <MudIconButton Icon="@Icons.Filled.Apps" OnClick="@ToggleOpen" Style="padding-left:1px;" Color="Color.Inherit" Edge="Edge.Start" />
+            <MudPopover Open="@_isOpen" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+		        <div class="d-flex flex-column pa-1">
+		            <AccountPopup />
+		        </div>
+	        </MudPopover>
+                <MudIconButton Icon="@Icons.Material.Filled.ShieldMoon" Style="padding-left:1px;" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DarkModeToggle())" />
+              </MudItem>
+           
+      
+
+        </MudGrid>   
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen">
+        <NavMenu/>
+    </MudDrawer>
+    <MudMainContent>
+      <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+          <AuthorizeView>
+
+                @Body
+
+          </AuthorizeView>
+      
+    </MudContainer>
+    </MudMainContent>
+</MudLayout>
+@code {
+
+    public bool _isOpen;
+    
+    public bool _darkMode = true;
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+       void DarkModeToggle()
+    {
+        _darkMode = !_darkMode;
+    }
+
+    public void ToggleOpen()
+	{
+		if (_isOpen)
+			_isOpen = false;
+		else
+			_isOpen = true;
+	}
+    
+
+  
+}

@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  itwebapp:
+    image: ${DOCKER_REGISTRY-}itwebapp
+    ports:
+        - "8080:80"
+        - "8081:443"
+    build:
+      context: .
+      dockerfile: ITWebApp/Dockerfile
+     

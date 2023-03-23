@@ -1,0 +1,257 @@
+﻿@inject TicketsController ticketsService
+@inject UserController userController
+@inject NavigationManager _navigationManager
+@using ITWebApp.Features.GetFullTicketContent
+@using ITWebApp.Features.GetTicketsByClient
+@using ITWebApp.Features.PostTicketContent
+@using ITWebApp.Features.UpdateTicket
+@using ITWebApp.Features.GetUsers
+@using ITWebApp.Controllers
+@using System.ComponentModel
+
+
+<MudDialog DisableSidePadding="true">
+
+
+	 <DialogContent>
+		<MudContainer Style="max-height:700px; overflow-y: scroll">
+			@if(fullTicketContent == null)
+		{
+			<p>Loading...</p>
+		}
+		else
+		{
+				<MudSelect T="string" Label="Users" ValueChanged="UserSet" Style="max-width:170px;" AnchorOrigin="Origin.BottomCenter" @bind-SelectedValues="defaultUser">
+
+
+					@if (users != null)
+					{
+						@foreach (var user in users)
+						{
+
+							<MudSelectItem Style="max-width:170px;" Value="@(user.user_forename + " " + @user.user_surname)"></MudSelectItem>
+						}
+					}
+
+				</MudSelect>
+
+
+			@foreach(var content in fullTicketContent.TicketContent)
+			{
+				
+
+
+				<MudTimeline TimelinePosition="TimelinePosition.Left">
+					<MudTimelineItem>
+						@if(content.UpdateByType == "User")
+						{
+							<MudCard style="background-color:#585858">
+								<MudCardContent>
+									<MudText>@content.ContentDate</MudText>
+									<MudText>@content.ContentInformation</MudText>
+								</MudCardContent>
+							</MudCard>
+						}
+						else
+						{
+							<MudCard>
+								<MudCardContent>
+									<MudText>@content.ContentDate</MudText>
+									<MudText>@content.ContentInformation</MudText>
+								</MudCardContent>
+							</MudCard>
+						}
+
+				
+					</MudTimelineItem>
+				</MudTimeline>
+			}
+			
+			
+		
+		}
+		</MudContainer>
+		<MudTextField @bind-Value="UpdateTicketText" Label="Filled" Variant="Variant.Filled"></MudTextField>
+		
+
+	
+
+	</DialogContent>
+		<DialogActions>
+			<MudGrid>
+
+			
+		
+		@*	<MudContainer style="padding-left:610px;">*@
+				  <MudItem xs="3">	<MudText Typo="Typo.body1">Total Ticket Time: @TotalTime</MudText>  </MudItem>
+			  <MudItem xs="1">	<MudTextField  @bind-Value="TimeTaken" Label="Log Time" Variant="Variant.Text"></MudTextField> </MudItem>
+			<MudItem xs="3">
+				<MudSelect T="string" Label="TicketStatuses" ValueChanged="TicketStatusSet" Style="max-width:170px;" AnchorOrigin="Origin.BottomCenter" @bind-SelectedValues="defaultTicketStatus">
+
+
+					@if(ticketStatusTypes != null)
+			{
+					@foreach(var status in ticketStatusTypes)
+			{
+
+					<MudSelectItem Style="max-width:170px;" Value="@(status.TicketStatusName)" />
+			} 
+			}
+		
+		</MudSelect>
+		</MudItem>
+		@*</MudContainer>*@
+		
+		  <MudItem xs="1">	<MudButton OnClick="Cancel">Cancel</MudButton> </MudItem>
+		  <MudItem xs="1"><MudButton OnClick="Save">Save</MudButton>	</MudItem>
+		</MudGrid>
+	</DialogActions>
+</MudDialog>
+
+
+
+@code {
+	[CascadingParameter] MudDialogInstance MudDialog { get; set; }
+	[Parameter] public Guid ticketId { get; set; }
+	GetFullTicketContentResponseDto fullTicketContent;
+	List<TicketStatusTypesDto> ticketStatusTypes;
+	private IEnumerable<GetUserInformationResponseDto> users { get; set; } 
+	public IEnumerable<string> defaultUser { get; set; } = new HashSet<string>();
+	public string UserDefaultValue { get; set; } = "";
+	string _messageStyleToggle = "";
+	public string UpdateTicketText { get; set; }
+	public string TicketStatusValue { get; set; } = "Open";
+
+	public int TimeTaken { get; set; } = 5;
+	public int TotalTime;
+	//public string TotalTime;
+	string align = "";
+	public IEnumerable<string> defaultTicketStatus { get; set; } = new HashSet<string>();
+	void Submit() => MudDialog.Close(DialogResult.Ok(true));
+	void Cancel() => MudDialog.Close(DialogResult.Ok(true));
+
+	//	void Save() => MudDialog.Close(DialogResult.Ok(true));
+
+	public class TicketStatus{
+		private readonly string Name;
+		public TicketStatus(string name)
+		{
+			Name = name;
+		}
+		public override bool Equals(object o)
+		{
+			var other = o as TicketStatus;
+			return other?.Name == Name;
+		}
+	}
+
+	public async void TicketStatusSet(string value)
+	{
+		TicketStatusValue = value.ToString();
+	}
+
+	public async void UserSet(string value)
+	{
+		UserDefaultValue = value.ToString();
+	}
+
+
+	void RefreshPage()
+	{
+		string path = "/client/" + fullTicketContent.TicketClientID;
+		_navigationManager.NavigateTo(path, true);
+	}
+
+	public async void Save()
+	{
+
+
+		if (UpdateTicketText != null)
+		{
+			string updateinfo = UpdateTicketText.ToString();
+			TicketsCommandDto command = new TicketsCommandDto();
+			command.contentID = Guid.NewGuid();
+			command.timeTracked = TimeTaken;
+			//command.timeTracked = 5;
+			command.isOriginalValue = 0;
+			command.UpdateByType = "Engineer";
+			command.fkTicketDetailsId = ticketId;
+			command.contentTicketID = Guid.NewGuid();
+			command.contentDate = DateTime.Now;
+			command.contentInformation = updateinfo;
+			command.contentUpdatedBy = Guid.NewGuid();
+			await ticketsService.PutTicketContent(command);	
+		}
+
+
+
+		//TicketContentDto contentDto = new TicketContentDto
+		//	{
+		//		ContentID = Guid.NewGuid(),
+		//		ContentDate = DateTime.Now,
+		//		ContentInformation = updateinfo,
+		//		ContentUpdatedBy = fullTicketContent.TicketEngineerID,
+		//		ContentTicketID = fullTicketContent.TicketID
+		//	};
+
+		//List<TicketContentDto> contentDtoList = new List<TicketContentDto>();
+		//contentDtoList.Add(contentDto);
+		var count = 0;
+		string[] names = UserDefaultValue.Split(' ');
+		var forename = names[0];
+		var surname = names[1];
+		var userId = (from u in users where u.user_forename == forename && u.user_surname == surname select u.UserID).ToList();
+
+
+		UpdateTicketDto detailsCommand = new UpdateTicketDto();
+		detailsCommand.TicketStatus = ticketStatusTypes.Where(x => x.TicketStatusName == TicketStatusValue).Select(x => x.TicketStatusId).First();
+		detailsCommand.TicketLastUpdate = DateTime.Now;
+		detailsCommand.TicketUserId = userId.FirstOrDefault();
+		detailsCommand.TicketID = fullTicketContent.TicketID;
+		detailsCommand.TicketClientID = fullTicketContent.TicketClientID;
+		detailsCommand.TicketEngineerID = fullTicketContent.TicketEngineerID;
+		//detailsCommand.TicketContent = contentDtoList;
+		await ticketsService.PutTicketDetails(detailsCommand);
+		RefreshPage();
+		//await ticketsService
+
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+
+		fullTicketContent = await ticketsService.GetFullTicketContent(ticketId);
+		users = await userController.GetUsersByClientId(fullTicketContent.TicketClientID);
+		List<string> user = new List<string>();
+
+		var currentUser = users.Where(x => x.UserID == fullTicketContent.TicketUserId).Select(x => x.user_forename);
+
+		var usersinList = from u in users where u.UserID == fullTicketContent.TicketUserId select new { Name = u.user_forename + " " + u.user_surname };
+		var list = usersinList.ToList();
+		List<string> stringList = new List<string>();
+		//foreach(var val in list){
+		//	stringList.Add(val.Name.ToString(););
+		//}
+
+		defaultUser = list.Select(x => x.Name.ToString()).ToList();
+
+		ticketStatusTypes = await ticketsService.GetTicketStatusTypes();
+		var currentStatus = ticketStatusTypes.Where(x => x.TicketStatusId == fullTicketContent.TicketStatus).Select(x => x.TicketStatusName).First();
+		List<string> tt = new List<string>();
+		tt.Add(currentStatus);
+		defaultTicketStatus = tt;
+
+		TicketStatusSet(currentStatus);
+
+		foreach(var content in fullTicketContent.TicketContent)
+		{
+			if(content.TimeTracked > 0)
+			{
+				TotalTime = TotalTime + content.TimeTracked;
+			}
+			
+		}
+		//TotalTime = TotalTime.ToString();
+	}
+
+}

@@ -1,0 +1,106 @@
+﻿@inject DevicesController deviceHistoryService
+@using ITWebApp.Controllers
+@using ITWebApp.Features.GetDevices
+@using ITWebApp.Data
+@using System.ComponentModel
+@inject NavigationManager NavigationManager
+
+
+
+  @if (ienDevice == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <p>MachineKey: @_machineKey</p>
+        <p>ClientId: @_clientId</p>
+      
+             <MudTable Items="@sortedIenDevice"  Hover="true" Breakpoint="Breakpoint.Sm" Loading="true" T="GetDevicesResponseDto" LoadingProgressColor="Color.Info">
+                <HeaderContent>
+                    <MudTh>Domain</MudTh>
+                    <MudTh>Hostname</MudTh>
+                    <MudTh>Total Ram</MudTh>
+                    <MudTh>Free Ram</MudTh>
+                    <MudTh>CPU Temp</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Domain">@context.Domain</MudTd>
+                    <MudTd DataLabel="Hostname">@context.Hostname</MudTd>
+                    <MudTd DataLabel="Total Ram">@context.TotalRam</MudTd>
+                    <MudTd DataLabel="Free Ram">@context.FreeRam</MudTd>
+                    <MudTd DataLabel="CPU Temp">@context.CPUTemp</MudTd>
+                    <MudTd DataLabel="DateTime">@context.LoggedDateTime</MudTd>
+                    <MudButton OnClick="HandleOk"></MudButton>
+                    <MudButton OnClick="LoadDevicePage"></MudButton>
+                </RowTemplate>
+            </MudTable>
+      
+    }
+
+
+
+@code {
+
+    
+    [Parameter] public Guid machineKey { get; set; }
+    [Parameter] public Guid clientId { get; set; }
+
+
+
+    [Parameter]
+    public DeviceHistory DeviceHistory { get; set; }
+
+  
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadDeviceData(DeviceHistory.MachineKey, DeviceHistory.ClientId, DeviceHistory.ModalShow);
+
+    }
+
+
+
+ 
+    bool _visible = false;
+    Guid _machineKey;
+    Guid _clientId;
+    IEnumerable<GetDevicesResponseDto> ienDevice;
+    IEnumerable<GetDevicesResponseDto> sortedIenDevice;
+
+
+    private void LoadDevicePage(MouseEventArgs e)
+    {
+        string url = "devicePage/" + _clientId + "/" + _machineKey;
+        NavigationManager.NavigateTo(url, true,false);
+    }
+    private void HandleOk(MouseEventArgs e)
+    {
+        Console.WriteLine(e);
+        _visible = false;
+    }
+
+    private void HandleCancel(MouseEventArgs e)
+    {
+        Console.WriteLine(e);
+        _visible = false;
+    }
+
+    private async Task LoadDeviceData(Guid machineKey, Guid clientId, bool modalShow)
+    {
+        if(modalShow == true)
+        {
+          
+
+            ienDevice = await deviceHistoryService.GetFullDeviceLog(machineKey, clientId);
+            sortedIenDevice = ienDevice.OrderByDescending(x => x.LoggedDateTime);
+
+        }
+
+        _machineKey = machineKey;
+        _clientId = clientId;
+        _visible = modalShow;
+        //  ienDevice = deviceData;
+    }
+
+
+}

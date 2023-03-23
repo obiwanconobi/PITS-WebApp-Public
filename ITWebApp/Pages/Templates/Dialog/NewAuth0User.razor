@@ -1,0 +1,42 @@
+@inject ScriptsController scriptsService
+@inject AuthenticationStateProvider AuthState
+@using ITWebApp.Controllers
+@using System.ComponentModel
+@using System.Security.Claims
+@using Auth0.ManagementApi
+@using Auth0.ManagementApi.Models
+@using ByteSizeLib;
+
+<h3>NewAuth0User</h3>
+
+  <MudTextField @bind-Value="UserName" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+   <MudTextField @bind-Value="UserEmail" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+   <MudButton Color="Color.Primary" OnClick="RunScript">Run</MudButton>                           
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    public string UserName { get; set; }   
+    public string UserEmail { get; set; }
+    public ManagementApiClient client;
+    protected override async Task OnParametersSetAsync()
+    {
+        var authKey = Environment.GetEnvironmentVariable("Auth0ManageKey");
+        client = new ManagementApiClient(authKey, new Uri(Environment.GetEnvironmentVariable("Auth0ManageAPI")));
+
+        
+    }
+
+    public async void RunScript()
+    {
+        UserCreateRequest createUser = new UserCreateRequest();
+        createUser.Email = UserEmail;
+      //  createUser.UserName = UserName;
+        createUser.Connection = "Username-Password-Authentication";
+        createUser.Password = "Password123@";
+        var response = await client.Users.CreateAsync(createUser);
+        
+    }
+    
+
+
+}
